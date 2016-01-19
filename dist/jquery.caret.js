@@ -40,50 +40,56 @@ EditableCaret = (function() {
   }
 
   EditableCaret.prototype.setPos = function(pos) {
-    var fn, found, offset, sel;
-    if (sel = oWindow.getSelection()) {
+    var fn, found, offset, updateSelection;
+    if (oWindow.getSelection()) {
       offset = 0;
       found = false;
-      (fn = function(pos, parent) {
-        var node, range, _i, _len, _ref, _ref1, _results;
-        _ref = parent.childNodes;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          node = _ref[_i];
-          if (found) {
-            break;
-          }
-          if (node.nodeType === 3) {
-            if (offset + node.length >= pos) {
-              found = true;
-              range = oDocument.createRange();
-              range.setStart(node, pos - offset);
-              sel.removeAllRanges();
-              sel.addRange(range);
+      updateSelection = function(node, offset) {
+        var range, sel;
+        sel = oWindow.getSelection();
+        range = oDocument.createRange();
+        range.setStart(node, offset);
+        sel.removeAllRanges();
+        return sel.addRange(range);
+      };
+      if (pos === 0) {
+        updateSelection(this.domInputor, 0);
+      } else {
+        (fn = function(pos, parent) {
+          var node, _i, _len, _ref, _ref1, _results;
+          _ref = parent.childNodes;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            node = _ref[_i];
+            if (found) {
               break;
-            } else {
-              _results.push(offset += node.length);
             }
-          } else if ((_ref1 = node.tagName.toUpperCase()) === "DIV" || _ref1 === "UL" || _ref1 === "LI" || _ref1 === "BLOCKQUOTE") {
-            if (parent.firstChild !== node) {
-              offset += 1;
-            }
-            if (offset === pos) {
-              found = true;
-              range = oDocument.createRange();
-              range.setStart(node, pos - offset);
-              sel.removeAllRanges();
-              sel.addRange(range);
-              break;
+            if (node.nodeType === 3) {
+              if (offset + node.length >= pos) {
+                found = true;
+                updateSelection(node, pos - offset);
+                break;
+              } else {
+                _results.push(offset += node.length);
+              }
+            } else if ((_ref1 = node.tagName.toUpperCase()) === "DIV" || _ref1 === "UL" || _ref1 === "LI" || _ref1 === "BLOCKQUOTE") {
+              if (parent.firstChild !== node) {
+                offset += 1;
+              }
+              if (offset === pos) {
+                found = true;
+                updateSelection(node, 0);
+                break;
+              } else {
+                _results.push(fn(pos, node));
+              }
             } else {
               _results.push(fn(pos, node));
             }
-          } else {
-            _results.push(fn(pos, node));
           }
-        }
-        return _results;
-      })(pos, this.domInputor);
+          return _results;
+        })(pos, this.domInputor);
+      }
     }
     return this.domInputor;
   };
