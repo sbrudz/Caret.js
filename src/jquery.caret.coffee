@@ -21,25 +21,41 @@ class EditableCaret
 
   # NOTE: Duck type
   setPos: (pos) ->
-    if sel = oWindow.getSelection()
+    if oWindow.getSelection()
       offset = 0
       found = false
-      do fn = (pos, parent=@domInputor) ->
-        for node in parent.childNodes
-          if found
-            break
-          if node.nodeType == 3
-            if offset + node.length >= pos
-              found = true
-              range = oDocument.createRange()
-              range.setStart(node, pos - offset)
-              sel.removeAllRanges()
-              sel.addRange(range)
+      updateSelection = (node, offset) ->
+        sel = oWindow.getSelection()
+        range = oDocument.createRange()
+        range.setStart(node, offset)
+        sel.removeAllRanges()
+        sel.addRange(range)
+
+      if pos == 0
+        updateSelection(@domInputor, 0)
+      else
+        do fn = (pos, parent=@domInputor) ->
+          for node in parent.childNodes
+            if found
               break
+            if node.nodeType == 3
+              if offset + node.length >= pos
+                found = true
+                updateSelection(node, pos - offset)
+                break
+              else
+                offset += node.length
+            else if node.tagName.toUpperCase() in ["DIV", "UL", "LI", "BLOCKQUOTE"]
+              if parent.firstChild != node
+                offset += 1
+              if offset == pos
+                found = true
+                updateSelection(node, 0)
+                break
+              else
+                fn(pos, node)
             else
-              offset += node.length
-          else
-            fn(pos, node)
+              fn(pos, node)
 
     @domInputor
 
@@ -63,7 +79,18 @@ class EditableCaret
       clonedRange = range.cloneRange()
       clonedRange.selectNodeContents(@domInputor)
       clonedRange.setEnd(range.endContainer, range.endOffset)
-      pos = clonedRange.toString().length
+
+      countTextInNode = (parent, count=0) ->
+        for node in parent.childNodes
+          if node.nodeType == 3
+            count += node.length;
+          else if node.nodeName.toUpperCase() in ["DIV", "UL", "LI", "BLOCKQUOTE"] and node != parent.firstChild
+            count = 1 + countTextInNode(node, count)
+          else
+            count = countTextInNode(node, count)
+        count
+
+      pos = countTextInNode(clonedRange.cloneContents())
       clonedRange.detach()
       pos
     else if oDocument.selection #IE < 9
