@@ -1,3 +1,9 @@
+### v0.4.0
+* Count whitespace in getPos and setPos for contentEditable -- breaking change
+
+### v0.3.0
+* f1f8639 - Add support for setPos for contentEditable
+
 ### v0.2.1
 
 * f66a1eb - can get offset at the benginning of a line

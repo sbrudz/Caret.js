@@ -28,7 +28,7 @@ class EditableCaret
         for node in parent.childNodes
           if found
             break
-          if node.nodeType == Node.TEXT_NODE
+          if node.nodeType == 3
             if offset + node.length >= pos
               found = true
               range = oDocument.createRange()
@@ -38,12 +38,18 @@ class EditableCaret
               break
             else
               offset += node.length
-          else if node.tagName.toUpperCase() == 'DIV'
-            offset += 1
-            fn(pos, node)
-          else if node.tagName.toUpperCase() == 'LI'
-            offset += 1
-            fn(pos, node)
+          else if node.tagName.toUpperCase() in ["DIV", "UL", "LI", "BLOCKQUOTE"]
+            if parent.firstChild != node
+              offset += 1
+            if offset == pos
+              found = true
+              range = oDocument.createRange()
+              range.setStart(node, pos - offset)
+              sel.removeAllRanges()
+              sel.addRange(range)
+              break
+            else
+              fn(pos, node)
           else
             fn(pos, node)
 
@@ -72,25 +78,13 @@ class EditableCaret
 
       countTextInNode = (parent, count=0) ->
         for node in parent.childNodes
-          if node.nodeType == Element.TEXT_NODE
-            console.log "TEXT"
+          if node.nodeType == 3
             count += node.length;
-          else if node.nodeName.toUpperCase() == "DIV"
-            console.log "DIV"
-            count = 1 + countTextInNode(node, count)
-          else if node.nodeName.toUpperCase() == "LI"
-            console.log "LI"
+          else if node.nodeName.toUpperCase() in ["DIV", "UL", "LI", "BLOCKQUOTE"] and node != parent.firstChild
             count = 1 + countTextInNode(node, count)
           else
-            console.log "<other>"
             count = countTextInNode(node, count)
-
-        console.log "returning #{count}"
         count
-
-      console.log "HELLO"
-
-      console.log clonedRange.cloneContents().childNodes
 
       pos = countTextInNode(clonedRange.cloneContents())
       clonedRange.detach()

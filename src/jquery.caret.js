@@ -46,7 +46,7 @@ EditableCaret = (function() {
       offset = 0;
       found = false;
       (fn = function(pos, parent) {
-        var node, range, _i, _len, _ref, _results;
+        var node, range, _i, _len, _ref, _ref1, _results;
         _ref = parent.childNodes;
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -54,7 +54,7 @@ EditableCaret = (function() {
           if (found) {
             break;
           }
-          if (node.nodeType === Node.TEXT_NODE) {
+          if (node.nodeType === 3) {
             if (offset + node.length >= pos) {
               found = true;
               range = oDocument.createRange();
@@ -65,12 +65,20 @@ EditableCaret = (function() {
             } else {
               _results.push(offset += node.length);
             }
-          } else if (node.tagName.toUpperCase() === 'DIV') {
-            offset += 1;
-            _results.push(fn(pos, node));
-          } else if (node.tagName.toUpperCase() === 'LI') {
-            offset += 1;
-            _results.push(fn(pos, node));
+          } else if ((_ref1 = node.tagName.toUpperCase()) === "DIV" || _ref1 === "UL" || _ref1 === "LI" || _ref1 === "BLOCKQUOTE") {
+            if (parent.firstChild !== node) {
+              offset += 1;
+            }
+            if (offset === pos) {
+              found = true;
+              range = oDocument.createRange();
+              range.setStart(node, pos - offset);
+              sel.removeAllRanges();
+              sel.addRange(range);
+              break;
+            } else {
+              _results.push(fn(pos, node));
+            }
           } else {
             _results.push(fn(pos, node));
           }
@@ -110,32 +118,23 @@ EditableCaret = (function() {
       clonedRange.selectNodeContents(this.domInputor);
       clonedRange.setEnd(range.endContainer, range.endOffset);
       countTextInNode = function(parent, count) {
-        var node, _i, _len, _ref;
+        var node, _i, _len, _ref, _ref1;
         if (count == null) {
           count = 0;
         }
         _ref = parent.childNodes;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           node = _ref[_i];
-          if (node.nodeType === Element.TEXT_NODE) {
-            console.log("TEXT");
+          if (node.nodeType === 3) {
             count += node.length;
-          } else if (node.nodeName.toUpperCase() === "DIV") {
-            console.log("DIV");
-            count = 1 + countTextInNode(node, count);
-          } else if (node.nodeName.toUpperCase() === "LI") {
-            console.log("LI");
+          } else if (((_ref1 = node.nodeName.toUpperCase()) === "DIV" || _ref1 === "UL" || _ref1 === "LI" || _ref1 === "BLOCKQUOTE") && node !== parent.firstChild) {
             count = 1 + countTextInNode(node, count);
           } else {
-            console.log("<other>");
             count = countTextInNode(node, count);
           }
         }
-        console.log("returning " + count);
         return count;
       };
-      console.log("HELLO");
-      console.log(clonedRange.cloneContents().childNodes);
       pos = countTextInNode(clonedRange.cloneContents());
       clonedRange.detach();
       return pos;
